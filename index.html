@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+  <meta charset="UTF-8">
+  <link rel="stylesheet" type="text/css" href="style.css">
+  <title>PIC-TALK SHAPE GUI</title>
+</head>
+
+<body>
+  <h1>PIC-TALK Shape Display Test GUI!</h1>
+  <p> You can test shape-display with this gui. </p>
+
+
+
+
+  <fieldset>
+    <legend>Port Settings</legend>
+
+    <div class="container">
+
+      <div>
+        <select clas id="Select" size="8">
+        </select>
+
+        <div style="height:0.5rem"></div>
+        <button type="button" onclick="connectSerial()">Connect Port</button>
+      </div>
+
+      <div style="width:2rem"></div>
+      <div>
+        <p id="connectLabel"> Connection status:</p>
+        <p id="deviceLabel"> Device Settings:</p>
+        <p id="firmwareLabel"> Firmware Version:</p>
+      </div>
+    </div>
+  </fieldset>
+
+  <fieldset>
+    <legend>Models</legend>
+    <form>
+      <select onchange="changeItem()" id="Select2" size="5" style="width: 10rem;">
+        <option data-value=":00000000000000000000000000000000000000000000000000000000000000000&"> Zero</option>
+        <option data-value=":00008800000088000000880008888888888888888000880000008800000088000&"> Plus</option>
+        <option data-value=":08888888888888888888888888888888888888888888888888888888888888888&"> All Up</option>
+        <option data-value=":00008800000088000000880008888888888888888000880000008800000088000&"> Valley</option>
+        <option data-value=":00008800000088000000880008888888888888888000880000008800000088000&"> Crepper</option>
+        <option data-value=":00000888800008888000088880000888888880000888800008888000088880000&"> sign(x)</option>
+        <option data-value=":00000000000033000003553000358853003588530003553000003300000000000&"> sqrt(1-x^2-y^2)
+        </option>
+      </select>
+    </form>
+    <div style="height: 0.5rem"></div>
+    <div class="container">
+      <input class="fixed" style="width: 500px;" id="Text" type="text"
+        value=":00000000000000000000000000000000000000000000000000000000000000000&"><br>
+      <button class="fixed" type="button" onclick="sendSerial()">Send</button>
+    </div>
+
+    
+
+  </fieldset>
+
+
+  <fieldset>
+      <legend>Debug Output</legend>
+  <textarea type="text" id="debug" style= "width:700px; height:75px; "> </textarea>
+  </fieldset>
+
+  <script>
+    var message_counter = 0
+    var x = document.getElementById("Select");
+    var y = document.getElementById("Select2");
+    var z = document.getElementById("Text");
+    var connectLabel = document.getElementById("connectLabel");
+    var deviceLabel = document.getElementById("deviceLabel");
+    var firmwareLabel = document.getElementById("firmwareLabel");
+    var debugOutput = document.getElementById("debug");
+
+    var serialport = require('serialport');
+    var Readline = serialport.parsers.Readline
+
+
+
+    // You can also require other files to run in this process
+    var serialport = require('serialport');
+    var port;
+
+
+    serialport.list(function (err, ports) {
+      ports.forEach(portName => {
+        var option = document.createElement("option");
+        option.text = portName.comName;
+        x.add(option);
+      });
+    });
+
+
+    function connectSerial() {
+
+      port = new serialport(x.options[x.selectedIndex].text, { baudRate: 115200, },
+        function (err) {
+          if (err) {
+            connectLabel.innerHTML = ("Connection Status: " + 'Error: ' + err.message);
+            return console.log('Error: ', err.message)
+          }
+          connectLabel.innerHTML = ("Connection Status: " + x.options[x.selectedIndex].text);
+        });
+      
+     
+
+      var parser = new Readline();
+      port.pipe(parser)
+      parser.on('data', function (data) {
+        console.log('data received: ' + data)
+        document.getElementById("debug").scrollTop = document.getElementById("debug").scrollHeight 
+
+        debugOutput.value += message_counter++  + ": " + data +'\n' ;
+        if (data[0] == ':' && data[1] == 'a' && data[2] == 'x') {
+          var elements = data.split('/');
+          deviceLabel.innerHTML = "Device Settings: "+ '<b>' +  elements[1] + '</b>' ;
+          firmwareLabel.innerHTML = "Firmware Version: " +  '<b>' + elements[2] + '</b>';
+        }
+      })
+      setTimeout(function() { port.write(":2sada&"); }, 3000);
+      
+    }
+
+    function sendSerial() {
+      port.write(z.value);
+      console.log("Send: " + z.value);
+    }
+
+    function changeItem() {
+      z.value = y.options[y.selectedIndex].dataset.value;
+    }
+
+    function sleep(milliseconds) {
+      var start = new Date().getTime();
+      for (var i = 0; i < 1e7; i++) {
+        if ((new Date().getTime() - start) > milliseconds) {
+          break;
+        }
+      }
+    }
+
+    require('./renderer.js')
+  </script>
+</body>
+
+</html>
